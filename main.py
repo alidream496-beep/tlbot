@@ -201,11 +201,9 @@ def check(call):
     else:
         bot.answer_callback_query(call.id, "❌ هنوز نه")
 
-print("🚀 Bot Started...")
-bot.infinity_polling()
+import os
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import os
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -218,4 +216,8 @@ def run_web():
     server = HTTPServer(("", port), Handler)
     server.serve_forever()
 
+# 🚀 اجرای سرور
 threading.Thread(target=run_web, daemon=True).start()
+
+print("🚀 Bot Started...")
+bot.infinity_polling()
