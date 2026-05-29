@@ -5,7 +5,8 @@ import os
 import time
 import threading
 
-TOKEN = "8971594224:AAG3ziwllDASeX2SfWYqD8dAIMKXMFyaQHs"
+import os
+TOKEN = os.environ.get("TOKEN")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
 ADMINS = [8196100632, 5418159522]
@@ -202,3 +203,19 @@ def check(call):
 
 print("🚀 Bot Started...")
 bot.infinity_polling()
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import os
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running")
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("", port), Handler)
+    server.serve_forever()
+
+threading.Thread(target=run_web, daemon=True).start()
