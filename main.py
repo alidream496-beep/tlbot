@@ -121,7 +121,7 @@ def add_movie(message):
 data = message.text.split()
 if len(data) < 2:
     bot.reply_to(message, "/add name")
-return
+    return
 
 waiting[message.from_user.id] = {"name": data[1]}
 bot.reply_to(message, "📸 عکس بفرست")
@@ -149,7 +149,7 @@ data = waiting[message.from_user.id]
 
 if "photo" not in data:
     bot.reply_to(message, "❌ اول عکس")
-return
+    return
 
 name = data["name"]  # فقط برای نمایش
 unique_id = str(uuid.uuid4())[:8]  # ساخت آیدی یکتا
@@ -172,7 +172,7 @@ def delete_movie(message):
 data = message.text.split()
 if len(data) < 2:
     bot.reply_to(message, "/delete name")
-return
+    return
 
 delete_movie_db(data[1])
 bot.reply_to(message, "🗑 حذف شد")
@@ -210,13 +210,13 @@ return
 data = message.text.split()
 if len(data) < 2:
     bot.send_message(message.chat.id, "❌ لینک نامعتبر")
-return
+    return
 
 file_id = get_movie(data[1])
 
 if not file_id:
     bot.send_message(message.chat.id, "❌ پیدا نشد")
-return
+    return
 
 bot.send_message(message.chat.id, "⚠️ بعد 30 ثانیه حذف میشه")
 
@@ -227,11 +227,11 @@ def delete():
 
     time.sleep(DELETE_TIME)
 
+    try:
+        bot.delete_message(message.chat.id, sent.message_id)
+    except:
+        pass
 
-try:
-    bot.delete_message(message.chat.id, sent.message_id)
-except:
-    pass
 
 threading.Thread(target=delete, daemon=True).start()
 
@@ -255,10 +255,9 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"Bot is running")
 
+    def run_web():
 
-def run_web():
-
-    port = int(os.environ.get("PORT", 10000))
+        port = int(os.environ.get("PORT", 10000))
 
 
 server = HTTPServer(("", port), Handler)
