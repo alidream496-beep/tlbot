@@ -57,6 +57,36 @@ waiting = {}
 # ================= JOIN =================
 
 
+@bot.message_handler(func=lambda m: m.from_user.id in waiting and waiting[m.from_user.id]["step"] == "desc")
+def get_desc(message):
+    data = waiting[message.from_user.id]
+
+    unique_id = str(uuid.uuid4())[:8]
+
+    cursor.execute(
+        "INSERT INTO movies (name, file_id) VALUES (%s,%s) ON CONFLICT (name) DO UPDATE SET file_id = EXCLUDED.file_id",
+        (unique_id, data["file_id"])
+    )
+    conn.commit()
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton(
+        "⬇️ دانلود فیلم",
+        url=f"https://t.me/{BOT_USERNAME}?start={unique_id}"
+    ))
+
+    bot.send_photo(
+        POST_CHANNEL,
+        data["photo"],
+        caption=message.text,
+        has_spoiler=True,
+        reply_markup=markup
+    )
+
+    del waiting[message.from_user.id]
+    bot.send_message(message.chat.id, "✅ ارسال شد")
+
+
 def is_joined(user_id):
     try:
         member = bot.get_chat_member(PUBLIC_CHANNEL, user_id)
@@ -136,13 +166,7 @@ def add_btn(message):
     if message.from_user.id not in ADMINS:
         return
 
-    waiting[message.from_user.id] = {}
-    bot.send_message(message.chat.id, "🎬 اسم فیلم رو بفرست")
-
-
-@bot.message_handler(func=lambda m: m.from_user.id in waiting and "name" not in waiting[m.from_user.id])
-def get_name(message):
-    waiting[message.from_user.id]["name"] = message.text
+    waiting[message.from_user.id] = {"step": "photo"}
     bot.send_message(message.chat.id, "📸 عکس بفرست")
 
 
@@ -151,7 +175,12 @@ def get_photo(message):
     if message.from_user.id not in waiting:
         return
 
+    if waiting[message.from_user.id]["step"] != "photo":
+        return
+
     waiting[message.from_user.id]["photo"] = message.photo[-1].file_id
+    waiting[message.from_user.id]["step"] = "video"
+
     bot.send_message(message.chat.id, "🎬 ویدیو بفرست")
 
 
@@ -160,7 +189,12 @@ def get_video(message):
     if message.from_user.id not in waiting:
         return
 
+    if waiting[message.from_user.id]["step"] != "video":
+        return
+
     waiting[message.from_user.id]["file_id"] = message.video.file_id
+    waiting[message.from_user.id]["step"] = "desc"
+
     bot.send_message(message.chat.id, "📝 توضیحات بفرست")
 
 
