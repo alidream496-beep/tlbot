@@ -23,17 +23,17 @@ DELETE_TIME = 30
 # ================= DB (AUTO RECONNECT) =================
 def connect_db():
     while True:
-try:
-    conn = psycopg2.connect(
-        os.environ.get("DATABASE_URL"),
-        connect_timeout=5
-    )
-    cursor = conn.cursor()
-    print("✅ Database Connected")
-    return conn, cursor
-except Exception as e:
-    print("❌ DB Error:", e)
-    time.sleep(5)
+        try:
+            conn = psycopg2.connect(
+                os.environ.get("DATABASE_URL"),
+                connect_timeout=5
+            )
+            cursor = conn.cursor()
+            print("✅ Database Connected")
+            return conn, cursor
+        except Exception as e:
+            print("❌ DB Error:", e)
+            time.sleep(5)
 
 conn, cursor = connect_db()
 
