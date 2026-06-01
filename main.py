@@ -153,6 +153,14 @@ def delete_movie(message):
 
     delete_movie_db(data[1])
     bot.reply_to(message, "🗑 حذف شد")
+    @bot.message_handler(commands=['list'])
+def list_movies(message):
+    cursor.execute("SELECT name FROM movies")
+    rows = cursor.fetchall()
+
+    text = "\n".join([r[0] for r in rows])
+
+    bot.send_message(message.chat.id, text or "empty")
 
 # ================= START =================
 @bot.message_handler(commands=['start'])
