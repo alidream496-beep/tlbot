@@ -94,10 +94,9 @@ def get_movie(name):
 
     ensure_connection()
 
-
-cursor.execute("SELECT file_id FROM movies WHERE name=%s", (name,))
-result = cursor.fetchone()
-return result[0] if result else None
+    cursor.execute("SELECT file_id FROM movies WHERE name=%s", (name,))
+    result = cursor.fetchone()
+    return result[0] if result else None
 
 
 def delete_movie_db(name):
