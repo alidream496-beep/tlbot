@@ -121,12 +121,7 @@ def get_movie_callback(call):
 
     file_id = pending_downloads[user_id]
 
-    sent = send_video_auto_delete(call.message.chat.id, file_id)
-
-    bot.send_message(
-        call.message.chat.id,
-        "⚠️ این ویدیو بعد از ۳۰ ثانیه حذف می‌شود"
-    )
+    send_video_auto_delete(call.message.chat.id, file_id)
 
     cursor.execute(
         "UPDATE stats SET total_downloads = total_downloads + 1 WHERE id=1"
@@ -152,7 +147,10 @@ def send_video_auto_delete(chat_id, file_id, delete_after=30):
         except Exception as e:
             print("Delete error:", e)
 
-    threading.Thread(target=delete_message_later, daemon=True).start()
+    threading.Thread(
+        target=delete_message_later,
+        daemon=True
+    ).start()
 
     return sent
 
@@ -204,33 +202,52 @@ def start(message):
         bot.send_message(message.chat.id, "❌ اول عضو شو", reply_markup=markup)
         return
 
-    data = message.text.split()
-    if len(data) < 2:
-        bot.send_message(message.chat.id, "❌ لینک نامعتبر")
-        return
-
-    file_id = get_movie(data[1])
-    if not file_id:
-        bot.send_message(message.chat.id, "❌ پیدا نشد")
-        return
-
     user_id = message.from_user.id
-    pending_downloads[user_id] = file_id
 
-    markup = types.InlineKeyboardMarkup()
-
-    markup.add(
-        types.InlineKeyboardButton(
-            "✅ ری‌اکشن زدم، دریافت فیلم",
-            callback_data="getmovie"
-        )
+    ensure_connection()
+    cursor.execute(
+        "INSERT INTO users (id) VALUES (%s) ON CONFLICT DO NOTHING",
+        (user_id,)
     )
+    conn.commit()
+
+    if user_id in ADMINS:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add("➕ افزودن فیلم")
+        markup.add("📊 آمار")
+        markup.add("📢 ارسال همگانی")
+
+        bot.send_message(message.chat.id, "👑 پنل ادمین", reply_markup=markup)
+        return
+
+    if not is_joined(user_id):
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(
+            "📢 خصوصی", url=PRIVATE_CHANNEL_LINK))
+        markup.add(types.InlineKeyboardButton(
+            "📢 عمومی", url=f"https://t.me/{PUBLIC_CHANNEL.replace('@', '')}"))
+        markup.add(types.InlineKeyboardButton(
+            "✅ عضو شدم", callback_data="check"))
+
+        bot.send_message(message.chat.id, "❌ اول عضو شو", reply_markup=markup)
+        return
+
+    args = message.text.split()
+
+    if len(args) > 1:
+        movie_id = args[1]
+
+        file_id = get_movie(movie_id)
+
+        if not file_id:
+            bot.send_message(message.chat.id, "❌ فیلم پیدا نشد")
+            return
+
+        send_video_auto_delete(message.chat.id, file_id)
+        return
 
     bot.send_message(
-        message.chat.id,
-        "❤️ برای حمایت از کانال روی پست ری‌اکشن بزن.\n\nبعد روی دکمه زیر بزن.",
-        reply_markup=markup
-    )
+        message.chat.id, "👋 خوش آمدی! لینک بفرست یا از منو استفاده کن")
 
 
 # ================= CHECK =================
@@ -267,16 +284,6 @@ def get_photo(message):
     waiting[message.from_user.id]["step"] = "video"
 
     bot.send_message(message.chat.id, "🎬 ویدیو بفرست")
-    if message.from_user.id not in waiting:
-        return
-
-    if waiting[message.from_user.id]["step"] != "photo":
-        return
-
-    waiting[message.from_user.id]["photo"] = message.photo[-1].file_id
-    waiting[message.from_user.id]["step"] = "video"
-
-    bot.send_message(message.chat.id, "🎬 ویدیو بفرست")
 
 
 @bot.message_handler(content_types=['video'])
@@ -285,16 +292,6 @@ def get_video(message):
         return
 
     if waiting[message.from_user.id].get("step") != "video":
-        return
-
-    waiting[message.from_user.id]["file_id"] = message.video.file_id
-    waiting[message.from_user.id]["step"] = "desc"
-
-    bot.send_message(message.chat.id, "📝 توضیحات بفرست")
-    if message.from_user.id not in waiting:
-        return
-
-    if waiting[message.from_user.id]["step"] != "video":
         return
 
     waiting[message.from_user.id]["file_id"] = message.video.file_id
