@@ -116,30 +116,6 @@ def get_movie_callback(call):
     user_id = call.from_user.id
 
     if user_id not in pending_downloads:
-        bot.answer_callback_query(
-            call.id,
-            "❌ لینک منقضی شده"
-        )
-        return
-
-    file_id = pending_downloads[user_id]
-
-    send_video_auto_delete(call.message.chat.id, file_id)
-
-    del pending_downloads[user_id]
-
-    bot.answer_callback_query(
-        call.id,
-        "🎬 فیلم ارسال شد"
-    )
-
-
-@bot.callback_query_handler(func=lambda c: c.data == "getmovie")
-def get_movie_callback(call):
-
-    user_id = call.from_user.id
-
-    if user_id not in pending_downloads:
         bot.answer_callback_query(call.id, "❌ لینک منقضی شده")
         return
 
@@ -158,6 +134,8 @@ def get_movie_callback(call):
 
 
 def send_video_auto_delete(chat_id, file_id, delete_after=30):
+
+    sent = bot.send_video(chat_id, file_id)
 
     def delete():
         time.sleep(delete_after)
@@ -372,6 +350,7 @@ threading.Thread(target=run_web).start()
 
 # ================= RUN =================
 print("🚀 Started")
+bot.remove_webhook()
 bot.infinity_polling(
     skip_pending=True,
     timeout=30,
