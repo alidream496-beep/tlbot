@@ -49,42 +49,72 @@ def ensure_connection():
 cursor.execute("CREATE TABLE IF NOT EXISTS users (id BIGINT PRIMARY KEY)")
 cursor.execute(
     "CREATE TABLE IF NOT EXISTS movies (name TEXT PRIMARY KEY, file_id TEXT)")
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS stats (
+    id INTEGER PRIMARY KEY,
+    total_downloads INTEGER DEFAULT 0
+)
+""")
+
+cursor.execute("""
+INSERT INTO stats (id, total_downloads)
+VALUES (1,0)
+ON CONFLICT (id) DO NOTHING
+""")
 conn.commit()
+
+
+@bot.message_handler(func=lambda m: m.text == "📢 ارسال همگانی")
+def broadcast_start(message):
+    if message.from_user.id not in ADMINS:
+        return
+
+    broadcast_waiting.add(message.from_user.id)
+    bot.send_message(message.chat.id, "📨 پیام همگانی را ارسال کن")
+
+
+@bot.message_handler(func=lambda m: m.from_user.id in broadcast_waiting)
+def broadcast_send(message):
+
+    if message.from_user.id not in ADMINS:
+        return
+
+    broadcast_waiting.remove(message.from_user.id)
+
+    cursor.execute("SELECT id FROM users")
+    users = cursor.fetchall()
+
+    sent_count = 0
+
+    for user in users:
+
+        user_id = user[0]
+
+        if user_id in ADMINS:
+            continue
+
+        try:
+            bot.send_message(
+                user_id,
+                f"📢 پیام مدیریت:\n\n{message.text}"
+            )
+
+            sent_count += 1
+
+        except:
+            pass
+
+    bot.send_message(
+        message.chat.id,
+        f"✅ پیام برای {sent_count} کاربر ارسال شد"
+    )
+
 
 # ================= STATE =================
 waiting = {}
+broadcast_waiting = set()
 
 # ================= JOIN =================
-
-
-@bot.message_handler(func=lambda m: m.from_user.id in waiting and waiting[m.from_user.id]["step"] == "desc")
-def get_desc(message):
-    data = waiting[message.from_user.id]
-
-    unique_id = str(uuid.uuid4())[:8]
-
-    cursor.execute(
-        "INSERT INTO movies (name, file_id) VALUES (%s,%s) ON CONFLICT (name) DO UPDATE SET file_id = EXCLUDED.file_id",
-        (unique_id, data["file_id"])
-    )
-    conn.commit()
-
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton(
-        "⬇️ دانلود فیلم",
-        url=f"https://t.me/{BOT_USERNAME}?start={unique_id}"
-    ))
-
-    bot.send_photo(
-        POST_CHANNEL,
-        data["photo"],
-        caption=message.text,
-        has_spoiler=True,
-        reply_markup=markup
-    )
-
-    del waiting[message.from_user.id]
-    bot.send_message(message.chat.id, "✅ ارسال شد")
 
 
 def is_joined(user_id):
@@ -110,6 +140,7 @@ def start(message):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add("➕ افزودن فیلم")
         markup.add("📊 آمار")
+        markup.add("📢 ارسال همگانی")
 
         bot.send_message(message.chat.id, "👑 پنل ادمین", reply_markup=markup)
         return
@@ -137,6 +168,14 @@ def start(message):
         return
 
     sent = bot.send_video(message.chat.id, file_id)
+    cursor.execute(
+        "UPDATE stats SET total_downloads = total_downloads + 1 WHERE id=1"
+    )
+    conn.commit()
+    cursor.execute(
+        "UPDATE stats SET total_downloads = total_downloads + 1 WHERE id=1"
+    )
+    conn.commit()
     bot.send_message(message.chat.id, "⚠️ بعد 30 ثانیه حذف میشه")
 
     def delete():
@@ -146,7 +185,7 @@ def start(message):
         except:
             pass
 
-    threading.Thread(target=delete).start()
+    threading.Thread(target=delete, daemon=True).start()
 
 # ================= CHECK =================
 
@@ -219,7 +258,7 @@ def get_desc(message):
     bot.send_photo(
         POST_CHANNEL,
         data["photo"],
-        caption=f"🎬 {data['name']}\n\n{message.text}",
+        caption=message.text,
         reply_markup=markup
     )
 
@@ -235,9 +274,15 @@ def stats(message):
         return
 
     cursor.execute("SELECT COUNT(*) FROM users")
-    count = cursor.fetchone()[0]
+    users_count = cursor.fetchone()[0]
 
-    bot.send_message(message.chat.id, f"👥 کاربران: {count}")
+    cursor.execute("SELECT total_downloads FROM stats WHERE id=1")
+    downloads = cursor.fetchone()[0]
+
+    bot.send_message(
+        message.chat.id,
+        f"👥 کاربران: {users_count}\n\n⬇️ کل دانلودها: {downloads}"
+    )
 
 # ================= DB =================
 
