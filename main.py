@@ -73,7 +73,7 @@ def broadcast_start(message):
     bot.send_message(message.chat.id, "📨 پیام همگانی را ارسال کن")
 
 
-@bot.message_handler(func=lambda m: m.from_user.id in broadcast_waiting)
+@bot.message_handler(func=lambda m: m.from_user.id in broadcast_waiting and m.from_user.id in ADMINS)
 def broadcast_send(message):
 
     if message.from_user.id not in ADMINS:
@@ -121,7 +121,12 @@ def get_movie_callback(call):
 
     file_id = pending_downloads[user_id]
 
-    send_video_auto_delete(call.message.chat.id, file_id)
+    sent = send_video_auto_delete(call.message.chat.id, file_id)
+
+    bot.send_message(
+        call.message.chat.id,
+        "⚠️ این ویدیو بعد از ۳۰ ثانیه حذف می‌شود"
+    )
 
     cursor.execute(
         "UPDATE stats SET total_downloads = total_downloads + 1 WHERE id=1"
@@ -134,17 +139,21 @@ def get_movie_callback(call):
 
 
 def send_video_auto_delete(chat_id, file_id, delete_after=30):
-
     sent = bot.send_video(chat_id, file_id)
 
-    def delete():
+    # پیام اطلاع
+    bot.send_message(
+        chat_id, f"⚠️ 30 این ویدیو بعد از {delete_after} ثانیه حذف می‌شود")
+
+    def delete_message_later():
         time.sleep(delete_after)
         try:
             bot.delete_message(chat_id, sent.message_id)
-        except:
-            pass
+        except Exception as e:
+            print("Delete error:", e)
 
-    threading.Thread(target=delete, daemon=True).start()
+    threading.Thread(target=delete_message_later, daemon=True).start()
+
     return sent
 
 
@@ -152,7 +161,6 @@ def send_video_auto_delete(chat_id, file_id, delete_after=30):
 waiting = {}
 broadcast_waiting = set()
 pending_downloads = {}
-
 # ================= JOIN =================
 
 
@@ -252,6 +260,16 @@ def get_photo(message):
     if message.from_user.id not in waiting:
         return
 
+    if waiting[message.from_user.id].get("step") != "photo":
+        return
+
+    waiting[message.from_user.id]["photo"] = message.photo[-1].file_id
+    waiting[message.from_user.id]["step"] = "video"
+
+    bot.send_message(message.chat.id, "🎬 ویدیو بفرست")
+    if message.from_user.id not in waiting:
+        return
+
     if waiting[message.from_user.id]["step"] != "photo":
         return
 
@@ -266,6 +284,16 @@ def get_video(message):
     if message.from_user.id not in waiting:
         return
 
+    if waiting[message.from_user.id].get("step") != "video":
+        return
+
+    waiting[message.from_user.id]["file_id"] = message.video.file_id
+    waiting[message.from_user.id]["step"] = "desc"
+
+    bot.send_message(message.chat.id, "📝 توضیحات بفرست")
+    if message.from_user.id not in waiting:
+        return
+
     if waiting[message.from_user.id]["step"] != "video":
         return
 
@@ -275,7 +303,7 @@ def get_video(message):
     bot.send_message(message.chat.id, "📝 توضیحات بفرست")
 
 
-@bot.message_handler(func=lambda m: m.from_user.id in waiting and "file_id" in waiting[m.from_user.id])
+@bot.message_handler(func=lambda m: m.from_user.id in waiting and waiting[m.from_user.id].get("step") == "desc")
 def get_desc(message):
     data = waiting[message.from_user.id]
 
