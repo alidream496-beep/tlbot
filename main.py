@@ -110,9 +110,63 @@ def broadcast_send(message):
     )
 
 
+@bot.callback_query_handler(func=lambda c: c.data == "getmovie")
+def get_movie_callback(call):
+
+    user_id = call.from_user.id
+
+    if user_id not in pending_downloads:
+        bot.answer_callback_query(
+            call.id,
+            "❌ لینک منقضی شده"
+        )
+        return
+
+    file_id = pending_downloads[user_id]
+
+    sent = bot.send_video(
+        call.message.chat.id,
+        file_id
+    )
+
+    cursor.execute(
+        "UPDATE stats SET total_downloads = total_downloads + 1 WHERE id=1"
+    )
+    conn.commit()
+
+    bot.send_message(
+        call.message.chat.id,
+        "⚠️ بعد از 30 ثانیه حذف می‌شود"
+    )
+
+    def delete():
+        time.sleep(DELETE_TIME)
+
+        try:
+            bot.delete_message(
+                call.message.chat.id,
+                sent.message_id
+            )
+        except:
+            pass
+
+    threading.Thread(
+        target=delete,
+        daemon=True
+    ).start()
+
+    del pending_downloads[user_id]
+
+    bot.answer_callback_query(
+        call.id,
+        "✅ فیلم ارسال شد"
+    )
+
+
 # ================= STATE =================
 waiting = {}
 broadcast_waiting = set()
+pending_downloads = {}
 
 # ================= JOIN =================
 
@@ -167,25 +221,23 @@ def start(message):
         bot.send_message(message.chat.id, "❌ پیدا نشد")
         return
 
-    sent = bot.send_video(message.chat.id, file_id)
-    cursor.execute(
-        "UPDATE stats SET total_downloads = total_downloads + 1 WHERE id=1"
-    )
-    conn.commit()
-    cursor.execute(
-        "UPDATE stats SET total_downloads = total_downloads + 1 WHERE id=1"
-    )
-    conn.commit()
-    bot.send_message(message.chat.id, "⚠️ بعد 30 ثانیه حذف میشه")
+    pending_downloads[user_id] = file_id
 
-    def delete():
-        time.sleep(DELETE_TIME)
-        try:
-            bot.delete_message(message.chat.id, sent.message_id)
-        except:
-            pass
 
-    threading.Thread(target=delete, daemon=True).start()
+markup = types.InlineKeyboardMarkup()
+
+markup.add(
+    types.InlineKeyboardButton(
+        "✅ ری‌اکشن زدم، دریافت فیلم",
+        callback_data="getmovie"
+    )
+)
+
+bot.send_message(
+    message.chat.id,
+    "❤️ برای حمایت از کانال روی پست موردنظر ری‌اکشن بزنید.\n\nسپس روی دکمه زیر کلیک کنید.",
+    reply_markup=markup
+)
 
 # ================= CHECK =================
 
