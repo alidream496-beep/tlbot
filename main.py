@@ -265,11 +265,25 @@ def start(message):
 
 @bot.callback_query_handler(func=lambda c: c.data == "check")
 def check(call):
-    if is_joined(call.from_user.id):
-        bot.answer_callback_query(call.id, "✅ تایید شد")
-    else:
-        bot.answer_callback_query(call.id, "❌ هنوز نه")
 
+    if is_joined(call.from_user.id):
+
+        bot.answer_callback_query(
+            call.id,
+            "✅ عضویت تایید شد"
+        )
+
+        bot.send_message(
+            call.message.chat.id,
+            "✅ عضویت شما تایید شد.\n\nحالا دوباره روی دکمه دانلود پست بزنید."
+        )
+
+    else:
+
+        bot.answer_callback_query(
+            call.id,
+            "❌ هنوز عضو کانال نشده‌ای"
+        )
 # ================= ADD FLOW =================
 
 
