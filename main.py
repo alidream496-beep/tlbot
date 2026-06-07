@@ -235,23 +235,23 @@ def start(message):
     args = message.text.split()
 
     if len(args) > 1:
-    movie_id = args[1]
+        movie_id = args[1]
 
-    file_id = get_movie(movie_id)
+        file_id = get_movie(movie_id)
 
     if not file_id:
         bot.send_message(message.chat.id, "❌ فیلم پیدا نشد")
         return
 
-    pending_downloads[user_id] = file_id
+        pending_downloads[user_id] = file_id
 
-    markup = types.InlineKeyboardMarkup()
-    markup.add(
-        types.InlineKeyboardButton(
-            "✅ ری‌اکشن زدم | دریافت فیلم",
-            callback_data="getmovie"
+        markup = types.InlineKeyboardMarkup()
+        markup.add(
+            types.InlineKeyboardButton(
+                "✅ ری‌اکشن زدم | دریافت فیلم",
+                callback_data="getmovie"
+            )
         )
-    )
 
     bot.send_message(
         message.chat.id,
