@@ -239,26 +239,26 @@ def start(message):
 
         file_id = get_movie(movie_id)
 
-    if not file_id:
-        bot.send_message(message.chat.id, "❌ فیلم پیدا نشد")
-        return
+        if not file_id:
+            bot.send_message(message.chat.id, "❌ فیلم پیدا نشد")
+            return
 
         pending_downloads[user_id] = file_id
 
         markup = types.InlineKeyboardMarkup()
         markup.add(
             types.InlineKeyboardButton(
-                "✅ ری‌اکشن زدم | دریافت فیلم",
+                "❤️ ری‌اکشن زدم | دریافت فیلم",
                 callback_data="getmovie"
             )
         )
 
-    bot.send_message(
-        message.chat.id,
-        "⭐ لطفاً روی پست موردنظر ری‌اکشن بزنید.\n\nبعد روی دکمه زیر بزنید تا فیلم ارسال شود.",
-        reply_markup=markup
-    )
-    return
+        bot.send_message(
+            message.chat.id,
+            "❤️ لطفاً برای حمایت از کانال روی پست بالا ری‌اکشن قلب بزنید.\n\nسپس روی دکمه زیر بزنید تا فیلم ارسال شود.",
+            reply_markup=markup
+        )
+        return
 
 # ================= CHECK =================
 
