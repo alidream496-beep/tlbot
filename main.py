@@ -221,23 +221,24 @@ def start(message):
         bot.send_message(message.chat.id, "❌ پیدا نشد")
         return
 
+    user_id = message.from_user.id
     pending_downloads[user_id] = file_id
 
+    markup = types.InlineKeyboardMarkup()
 
-markup = types.InlineKeyboardMarkup()
-
-markup.add(
-    types.InlineKeyboardButton(
-        "✅ ری‌اکشن زدم، دریافت فیلم",
-        callback_data="getmovie"
+    markup.add(
+        types.InlineKeyboardButton(
+            "✅ ری‌اکشن زدم، دریافت فیلم",
+            callback_data="getmovie"
+        )
     )
-)
 
-bot.send_message(
-    message.chat.id,
-    "❤️ برای حمایت از کانال روی پست موردنظر ری‌اکشن بزنید.\n\nسپس روی دکمه زیر کلیک کنید.",
-    reply_markup=markup
-)
+    bot.send_message(
+        message.chat.id,
+        "❤️ برای حمایت از کانال روی پست ری‌اکشن بزن.\n\nبعد روی دکمه زیر بزن.",
+        reply_markup=markup
+    )
+
 
 # ================= CHECK =================
 
