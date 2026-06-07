@@ -138,7 +138,7 @@ def send_video_auto_delete(chat_id, file_id, delete_after=30):
 
     # پیام اطلاع
     bot.send_message(
-        chat_id, f"⚠️ 30 این ویدیو بعد از {delete_after} ثانیه حذف می‌شود")
+        chat_id, f"⚠️ این ویدیو بعد از {delete_after} ثانیه حذف می‌شود")
 
     def delete_message_later():
         time.sleep(delete_after)
@@ -235,20 +235,30 @@ def start(message):
     args = message.text.split()
 
     if len(args) > 1:
-        movie_id = args[1]
+    movie_id = args[1]
 
-        file_id = get_movie(movie_id)
+    file_id = get_movie(movie_id)
 
-        if not file_id:
-            bot.send_message(message.chat.id, "❌ فیلم پیدا نشد")
-            return
-
-        send_video_auto_delete(message.chat.id, file_id)
+    if not file_id:
+        bot.send_message(message.chat.id, "❌ فیلم پیدا نشد")
         return
 
-    bot.send_message(
-        message.chat.id, "👋 خوش آمدی! لینک بفرست یا از منو استفاده کن")
+    pending_downloads[user_id] = file_id
 
+    markup = types.InlineKeyboardMarkup()
+    markup.add(
+        types.InlineKeyboardButton(
+            "✅ ری‌اکشن زدم | دریافت فیلم",
+            callback_data="getmovie"
+        )
+    )
+
+    bot.send_message(
+        message.chat.id,
+        "⭐ لطفاً روی پست موردنظر ری‌اکشن بزنید.\n\nبعد روی دکمه زیر بزنید تا فیلم ارسال شود.",
+        reply_markup=markup
+    )
+    return
 
 # ================= CHECK =================
 
@@ -322,7 +332,8 @@ def get_desc(message):
         POST_CHANNEL,
         data["photo"],
         caption=message.text,
-        reply_markup=markup
+        reply_markup=markup,
+        has_spoiler=True
     )
 
     del waiting[message.from_user.id]
